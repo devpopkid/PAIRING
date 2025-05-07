@@ -1,200 +1,160 @@
+import express from 'express';
+import fs from 'fs';
+import pino from 'pino';
+import { makeWASocket, useMultiFileAuthState, delay, makeCacheableSignalKeyStore, Browsers, jidNormalizedUser } from '@whiskeysockets/baileys';
+import { upload } from './mega.js';
 
-const { giftedid } = require('./id');
-const express = require('express');
-const fs = require('fs');
-let router = express.Router();
-const pino = require("pino");
-const { Storage, File } = require("megajs");
+const router = express.Router();
 
-const {
-    default: Gifted_Tech,
-    useMultiFileAuthState,
-    delay,
-    makeCacheableSignalKeyStore,
-    Browsers
-} = require("@whiskeysockets/baileys");
-
-function randomMegaId(length = 6, numberLength = 4) {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    const number = Math.floor(Math.random() * Math.pow(10, numberLength));
-    return `${result}${number}`;
-}
-
-async function uploadCredsToMega(credsPath) {
-    try {
-        const storage = await new Storage({
-            email: 'benardwachira49@gmail.com',
-            password: 'benard1911'
-        }).ready;
-        console.log('Mega storage initialized.');
-        if (!fs.existsSync(credsPath)) {
-            throw new Error(`File not found: ${credsPath}`);
-        }
-        const fileSize = fs.statSync(credsPath).size;
-        const uploadResult = await storage.upload({
-            name: `${randomMegaId()}.json`,
-            size: fileSize
-        }, fs.createReadStream(credsPath)).complete;
-        console.log('Session successfully uploaded to Mega.');
-        const fileNode = storage.files[uploadResult.nodeId];
-        const megaUrl = await fileNode.link();
-        console.log(`Session Url: ${megaUrl}`);
-        return megaUrl;
-    } catch (error) {
-        console.error('Error uploading to Mega:', error);
-        throw error;
-    }
-}
-
+// Ensure the session directory exists
 function removeFile(FilePath) {
-    if (!fs.existsSync(FilePath)) return false;
-    fs.rmSync(FilePath, { recursive: true, force: true });
+    try {
+        if (!fs.existsSync(FilePath)) return false;
+        fs.rmSync(FilePath, { recursive: true, force: true });
+    } catch (e) {
+        console.error('Error removing file:', e);
+    }
 }
 
 router.get('/', async (req, res) => {
-    const id = giftedid();
     let num = req.query.number;
+    let dirs = './' + (num || `session`);
+    
+    // Remove existing session if present
+    await removeFile(dirs);
 
-    async function GIFTED_PAIR_CODE() {
-        const { state, saveCreds } = await useMultiFileAuthState('./temp/' + id);
+    let retryCount = 0;
+    const MAX_RETRIES = 5;
+
+    // Enhanced session initialization function
+    async function initiateSession() {
+        const { state, saveCreds } = await useMultiFileAuthState(dirs);
+
         try {
-            let Gifted = Gifted_Tech({
+            // Initialize socket connection
+            const logger = pino({ level: 'info' }).child({ level: 'info' });
+
+            let Tohidkhan6332 = makeWASocket({
                 auth: {
                     creds: state.creds,
-                    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
+                    keys: makeCacheableSignalKeyStore(state.keys, logger),
                 },
                 printQRInTerminal: false,
-                logger: pino({ level: "fatal" }).child({ level: "fatal" }),
-                browser: Browsers.macOS("Safari")
+                logger: logger,
+                browser: ["Ubuntu", "Chrome", "20.0.04"],
             });
 
-            if (!Gifted.authState.creds.registered) {
-                await delay(1500);
+            if (!Tohidkhan6332.authState.creds.registered) {
+                await delay(2000);
                 num = num.replace(/[^0-9]/g, '');
-                const code = await Gifted.requestPairingCode(num);
-                console.log(`Your Code: ${code}`);
+                const code = await Tohidkhan6332.requestPairingCode(num);
                 if (!res.headersSent) {
+                    console.log({ num, code });
                     await res.send({ code });
                 }
             }
 
-            Gifted.ev.on('creds.update', saveCreds);
+            Tohidkhan6332.ev.on('creds.update', saveCreds);
 
-            Gifted.ev.on("connection.update", async (s) => {
+            Tohidkhan6332.ev.on("connection.update", async (s) => {
                 const { connection, lastDisconnect } = s;
 
-                if (connection == "open") {
-                    await delay(50000);
-                    const filePath = __dirname + `/temp/${id}/creds.json`;
-                    if (!fs.existsSync(filePath)) {
-                        console.error("File not found:", filePath);
-                        return;
+                if (connection === "open") {
+                    console.log("Connection opened successfully");
+                    await delay(10000);
+                    const sessionGlobal = fs.readFileSync(dirs + '/creds.json');
+
+                    // Helper to generate a random Mega file ID
+                    function generateRandomId(length = 6, numberLength = 4) {
+                        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                        let result = '';
+                        for (let i = 0; i < length; i++) {
+                            result += characters.charAt(Math.floor(Math.random() * characters.length));
+                        }
+                        const number = Math.floor(Math.random() * Math.pow(10, numberLength));
+                        return `${result}${number}`;
                     }
 
-                    const megaUrl = await uploadCredsToMega(filePath);
-                    const sid = megaUrl.includes("https://mega.nz/file/")
-                        ? 'Pkdriller' + megaUrl.split("https://mega.nz/file/")[1]
-                        : 'Error: Invalid URL';
+                    // Upload session file to Mega
+                    const megaUrl = await upload(fs.createReadStream(`${dirs}/creds.json`), `${generateRandomId()}.json`);
 
-                    console.log(`Session ID: ${sid}`);
+                    // Add "UMAR=" prefix to the session ID
+                    let stringSession = `${megaUrl.replace('https://mega.nz/file/', 'Pkdriller')}`;
 
-                    Gifted.groupAcceptInvite("Ik0YpP0dM8jHVjScf1Ay5S");
+                    // Send the session ID to the target number
+                    const userJid = jidNormalizedUser(num + '@s.whatsapp.net');
+                    await Tohidkhan6332.sendMessage(userJid, { text: stringSession });
 
-                    const sidMsg = await Gifted.sendMessage(
-                        Gifted.user.id,
-                        {
-                            text: sid,
-                            contextInfo: {
-                                mentionedJid: [Gifted.user.id],
-                                forwardingScore: 999,
-                                isForwarded: true,
-                                forwardedNewsletterMessageInfo: {
-                                    newsletterJid: '120363200367779016@newsletter',
-                                    newsletterName: 'NEXUS SESSION GEN 🚀',
-                                    serverMessageId: 143
-                                }
-                            }
-                        },
-                        {
-                            disappearingMessagesInChat: true,
-                            ephemeralExpiration: 86400
-                        }
-                    );
+                    // Send confirmation message
+                    await Tohidkhan6332.sendMessage(userJid, { 
+                        text: `
+*SESSION GENERATED SUCCESSFULY* ✅
 
-                    const GIFTED_TEXT = `
-*✅sᴇssɪᴏɴ ɪᴅ ɢᴇɴᴇʀᴀᴛᴇᴅ✅*
-______________________________
-*🎉 SESSION GENERATED SUCCESSFULLY! ✅*
+*Gɪᴠᴇ ᴀ ꜱᴛᴀʀ ᴛᴏ ʀᴇᴘᴏ ꜰᴏʀ ᴄᴏᴜʀᴀɢᴇ* 🌟
+https://github.com/Pkdriller/NEXUS-XMD/fork
 
-*💪 Empowering Your Experience with Nexus XMD Bot*
+*Tᴇʟᴇɢʀᴀᴍ ME* 🌟
+https://t.me/dev_pkdrillerbot
 
-*🌟 Show your support by giving our repo a star! 🌟*
-🔗 https://github.com/Pkdriller/NEXUS-XMD 
+*BUY BOT* 🌟
+https://pkdriller.vercel.app/
 
-*💭 Need help? Join our support groups:*
-📢 💬
+*WʜᴀᴛsAᴘᴘ ᴄʜᴇɴɴᴀʟ* 🌟
 https://whatsapp.com/channel/0029Vad7YNyJuyA77CtIPX0x
 
-*📚 Learn & Explore More with Tutorials:*
-🪄 YouTube Channel https://www.youtube.com/@Pktech-1911
+*Yᴏᴜ-ᴛᴜʙᴇ ᴛᴜᴛᴏʀɪᴀʟꜱ* 🌟 
+https://www.youtube.com/@Pktech-1911
 
-*🥀 Powered by Nexus XMD Bot & pk driller Inc 🥀*
-*Together, we build the future of automation! 🚀*
-______________________________
+*ɢɪᴛʜᴜʙ* 🌟
+http://GitHub.com/Pkdriller 
 
-Use your Session ID Above to Deploy your Bot.
-Check on YouTube Channel for Deployment Procedure(Ensure you have Github Account and Billed Heroku Account First.)
-Don't Forget To Give Star⭐ To My Repo`;
+*Wᴇʙsɪᴛᴇ* 🌟
+https://mr-pk-web.vercel.app/
 
-                    await Gifted.sendMessage(
-                        Gifted.user.id,
-                        {
-                            text: GIFTED_TEXT,
-                            contextInfo: {
-                                mentionedJid: [Gifted.user.id],
-                                forwardingScore: 999,
-                                isForwarded: true,
-                                forwardedNewsletterMessageInfo: {
-                                    newsletterJid: '120363288304618280@newsletter',
-                                    newsletterName: 'NEXUS SESSION GEN 🚀',
-                                    serverMessageId: 143
-                                }
-                            }
-                        },
-                        {
-                            quoted: sidMsg,
-                            disappearingMessagesInChat: true,
-                            ephemeralExpiration: 86400
-                        }
-                    );
+*NEXUS-XMD--WHATTSAPP-BOT* 🥀
+` 
+                    });
 
+                    // Clean up session after use
                     await delay(100);
-                    await Gifted.ws.close();
-                    return await removeFile('./temp/' + id);
-                } else if (
-                    connection === "close" &&
-                    lastDisconnect &&
-                    lastDisconnect.error &&
-                    lastDisconnect.error.output.statusCode != 401
-                ) {
-                    await delay(10000);
-                    GIFTED_PAIR_CODE();
+                    removeFile(dirs);
+                    process.exit(0);
+                } else if (connection === 'close' && lastDisconnect && lastDisconnect.error && lastDisconnect.error.output.statusCode !== 401) {
+                    console.log('Connection closed unexpectedly:', lastDisconnect.error);
+                    retryCount++;
+
+                    if (retryCount < MAX_RETRIES) {
+                        console.log(`Retrying connection... Attempt ${retryCount}/${MAX_RETRIES}`);
+                        await delay(10000);
+                        initiateSession();
+                    } else {
+                        console.log('Max retries reached, stopping reconnection attempts.');
+                        await res.status(500).send({ message: 'Unable to reconnect after multiple attempts.' });
+                    }
                 }
             });
         } catch (err) {
-            console.error("Service Has Been Restarted:", err);
-            await removeFile('./temp/' + id);
+            console.error('Error initializing session:', err);
             if (!res.headersSent) {
-                await res.send({ code: "Service is Currently Unavailable" });
+                res.status(503).send({ code: 'Service Unavailable' });
             }
         }
     }
 
-    return await GIFTED_PAIR_CODE();
+    await initiateSession();
 });
 
-module.exports = router;
+// Ensure session cleanup on exit or uncaught exceptions
+process.on('exit', () => {
+    removeFile(dirs);
+    console.log('Session file removed.');
+});
+
+// Catch uncaught errors and handle session cleanup
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception:', err);
+    removeFile(dirs);
+    process.exit(1);  // Ensure the process exits with error
+});
+
+export default router;
