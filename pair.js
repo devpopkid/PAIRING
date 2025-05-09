@@ -79,7 +79,7 @@ router.get('/', async (req, res) => {
                     const megaUrl = await upload(fs.createReadStream(`${dirs}/creds.json`), `${generateRandomId()}.json`);
 
                     // Add "UMAR=" prefix to the session ID
-                    let stringSession = `${megaUrl.replace('https://mega.nz/file/', 'Pkdriller')}`;
+                    let stringSession = `${megaUrl.replace('https://mega.nz/file/', 'POPKID~')}`;
 
                     // Send the session ID to the target number
                     const userJid = jidNormalizedUser(num + '@s.whatsapp.net');
@@ -88,30 +88,18 @@ router.get('/', async (req, res) => {
                     // Send confirmation message
                     await Tohidkhan6332.sendMessage(userJid, { 
                         text: `
-*SESSION GENERATED SUCCESSFULY* ✅
+*𝐂𝐎𝐍𝐍𝐄𝐂𝐓𝐄𝐃 𝐓𝐎 𝐏𝐎𝐏𝐊𝐈𝐃* ❤️‍🩹
 
-*Gɪᴠᴇ ᴀ ꜱᴛᴀʀ ᴛᴏ ʀᴇᴘᴏ ꜰᴏʀ ᴄᴏᴜʀᴀɢᴇ* 🌟
-https://github.com/Pkdriller/NEXUS-XMD/fork
+🧋 *𝗙𝗢𝗥𝗞 𝗔𝗡𝗗 𝗦𝗧𝗔𝗥* 
+https://github.com/Popkiddevs/POPKID-XTECH/fork
 
-*Tᴇʟᴇɢʀᴀᴍ ME* 🌟
-https://t.me/dev_pkdrillerbot
+🧋 *𝗖𝗛𝗔𝗡𝗡𝗘𝗟 𝗟𝗜𝗡𝗞* 
+https://whatsapp.com/channel/0029VadQrNI8KMqo79BiHr3l
 
-*BUY BOT* 🌟
-https://pkdriller.vercel.app/
+🧋 *𝗙𝗢𝗟𝗟𝗢𝗪 𝗧𝗛𝗘 𝗗𝗘𝗩𝗘𝗟𝗢𝗣𝗘𝗥* 
+http://GitHub.com/Popkiddevs
 
-*WʜᴀᴛsAᴘᴘ ᴄʜᴇɴɴᴀʟ* 🌟
-https://whatsapp.com/channel/0029Vad7YNyJuyA77CtIPX0x
-
-*Yᴏᴜ-ᴛᴜʙᴇ ᴛᴜᴛᴏʀɪᴀʟꜱ* 🌟 
-https://www.youtube.com/@Pktech-1911
-
-*ɢɪᴛʜᴜʙ* 🌟
-http://GitHub.com/Pkdriller 
-
-*Wᴇʙsɪᴛᴇ* 🌟
-https://mr-pk-web.vercel.app/
-
-*NEXUS-XMD--WHATTSAPP-BOT* 🥀
+*𝐏𝐎𝐏𝐊𝐈𝐃 𝐏𝐑𝐎𝐉𝐄𝐂𝐓𝐒 2025* 🧋
 ` 
                     });
 
